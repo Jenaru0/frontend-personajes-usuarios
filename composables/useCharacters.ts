@@ -199,7 +199,7 @@ export function useCharacters() {
   }
 
   function deleteCharacter(id: number) {
-    // Si es un personaje local (creado), se elimina directamente
+    // Si es un personaje local (creado), lo eliminamos directamente
     const localIndex = localCharacters.value.findIndex((c) => c.id === id);
     if (localIndex !== -1) {
       localCharacters.value.splice(localIndex, 1);

@@ -1,26 +1,40 @@
 <template>
-  <v-container fluid>
-    <!-- Diálogo de confirmación para editar un personaje de la API -->
-    <v-dialog v-model="showConfirmEdit" max-width="400">
-      <v-card>
-        <v-card-title class="headline">
-          <v-icon left>mdi-pencil</v-icon>Confirmar Edición
-        </v-card-title>
-        <v-card-text>
-          Al editar un personaje de la API se creará una copia local con los
-          cambios. ¿Desea continuar?
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn color="primary" @click="confirmEdit">
-            <v-icon left>mdi-check</v-icon>Sí, continuar
-          </v-btn>
-          <v-btn variant="text" @click="cancelConfirmEdit">
-            <v-icon left>mdi-cancel</v-icon>Cancelar
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+  <v-container fluid :class="darkMode ? 'theme--dark' : ''">
+    <!-- Encabezado: búsqueda, filtrado y modo oscuro -->
+    <v-row class="my-4" align="center">
+      <v-col cols="12" md="4">
+        <v-text-field
+          v-model="searchQuery"
+          label="Buscar por nombre"
+          clearable
+          outlined
+          prepend-icon="mdi-magnify"
+        />
+      </v-col>
+      <v-col cols="12" md="3">
+        <v-select
+          v-model="filterStatus"
+          :items="statusOptions"
+          label="Filtrar por estado"
+          clearable
+          outlined
+          prepend-icon="mdi-alert-circle"
+        />
+      </v-col>
+      <v-col cols="12" md="3">
+        <v-select
+          v-model="filterGender"
+          :items="genderOptions"
+          label="Filtrar por género"
+          clearable
+          outlined
+          prepend-icon="mdi-gender-male-female"
+        />
+      </v-col>
+      <v-col cols="12" md="2" class="text-right">
+        <v-switch v-model="darkMode" label="Modo Oscuro" />
+      </v-col>
+    </v-row>
 
     <!-- Botón para abrir el modal de agregar personaje -->
     <v-row class="my-4">
@@ -52,10 +66,58 @@
       </v-card>
     </v-dialog>
 
+    <!-- Modal para detalle ampliado -->
+    <v-dialog v-model="detailDialog" max-width="500">
+      <v-card>
+        <v-card-title class="headline">
+          <v-icon left>mdi-information</v-icon>Detalle del Personaje
+        </v-card-title>
+        <v-card-text>
+          <div v-if="extendedCharacter">
+            <v-img
+              :src="extendedCharacter.image"
+              height="200px"
+              class="mb-2"
+            ></v-img>
+            <div><strong>Nombre:</strong> {{ extendedCharacter.name }}</div>
+            <div>
+              <strong>Estado:</strong>
+              {{ extendedCharacter.status || "Desconocido" }}
+            </div>
+            <div>
+              <strong>Género:</strong>
+              {{ extendedCharacter.gender || "Desconocido" }}
+            </div>
+            <div>
+              <strong>Especie:</strong>
+              {{ extendedCharacter.species || "Desconocido" }}
+            </div>
+            <div>
+              <strong>Origen:</strong>
+              {{ extendedCharacter.origin || "Desconocido" }}
+            </div>
+            <div>
+              <strong>Ubicación:</strong>
+              {{ extendedCharacter.location || "Desconocido" }}
+            </div>
+            <div v-if="extendedCharacter.description">
+              <strong>Descripción:</strong> {{ extendedCharacter.description }}
+            </div>
+          </div>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn color="primary" @click="detailDialog = false">
+            <v-icon left>mdi-close</v-icon>Cerrar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- Lista de tarjetas -->
     <v-row>
       <v-col
-        v-for="char in allCharacters"
+        v-for="char in filteredCharacters"
         :key="char.id"
         cols="12"
         sm="6"
@@ -91,8 +153,10 @@
             <v-btn color="secondary" @click="openEditModal(char)">
               <v-icon left>mdi-pencil</v-icon>Editar
             </v-btn>
-            <v-spacer />
-            <!-- Botón para expandir o contraer -->
+            <v-spacer></v-spacer>
+            <v-btn color="info" @click="openDetail(char)">
+              <v-icon left>mdi-information</v-icon>Ver detalles
+            </v-btn>
             <v-btn icon @click="toggleExpand(char.id)">
               <v-icon>
                 {{
@@ -131,7 +195,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import { useCharacters } from "@/composables/useCharacters";
 import CharacterForm from "@/components/CharacterForm.vue";
 
@@ -174,6 +238,34 @@ const { allCharacters, createCharacter, updateCharacter, deleteCharacter } =
 const pendingEditCharacter = ref<any>(null);
 const showConfirmEdit = ref(false);
 const expandedCards = ref<Set<number>>(new Set());
+const detailDialog = ref(false);
+const extendedCharacter = ref<CharacterFormData | null>(null);
+
+// Variables para búsqueda y filtros
+const searchQuery = ref("");
+const filterStatus = ref<string | null>(null);
+const filterGender = ref<string | null>(null);
+const statusOptions = ["Alive", "Dead", "unknown"];
+const genderOptions = ["Female", "Male", "Genderless", "unknown"];
+
+// Modo oscuro
+const darkMode = ref(false);
+
+// Propiedad computada para filtrar personajes
+const filteredCharacters = computed(() => {
+  return allCharacters.value.filter((char) => {
+    const matchesQuery = char.name
+      .toLowerCase()
+      .includes(searchQuery.value.toLowerCase());
+    const matchesStatus = filterStatus.value
+      ? char.status === filterStatus.value
+      : true;
+    const matchesGender = filterGender.value
+      ? char.gender === filterGender.value
+      : true;
+    return matchesQuery && matchesStatus && matchesGender;
+  });
+});
 
 function toggleExpand(id: number) {
   if (expandedCards.value.has(id)) {
@@ -224,6 +316,12 @@ function handleSave(data: CharacterFormData) {
     }
   }
   dialog.value = false;
+}
+
+function openDetail(character: any) {
+  // Aquí podemos mostrar más información; por ahora usamos los datos que tenemos
+  extendedCharacter.value = { ...character };
+  detailDialog.value = true;
 }
 </script>
 
