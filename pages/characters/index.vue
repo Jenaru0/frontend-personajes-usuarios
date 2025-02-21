@@ -1,6 +1,6 @@
 <template>
   <v-container fluid>
-    <!-- Diálogo de confirmación para editar un personaje API -->
+    <!-- Diálogo de confirmación para editar un personaje de la API -->
     <v-dialog v-model="showConfirmEdit" max-width="400">
       <v-card>
         <v-card-title class="headline">
@@ -69,6 +69,8 @@
             class="white--text align-end"
             gradient="to bottom, rgba(0,0,0,.1), rgba(0,0,0,.5)"
           ></v-img>
+
+          <!-- Título y subtítulo -->
           <v-card-title>
             <v-icon left>mdi-account</v-icon>{{ char.name }}
           </v-card-title>
@@ -80,6 +82,8 @@
             <v-icon left small>mdi-television-classic</v-icon>
             Rick and Morty
           </v-card-subtitle>
+
+          <!-- Acciones principales -->
           <v-card-actions>
             <v-btn
               color="error"
@@ -92,10 +96,38 @@
               <v-icon left>mdi-pencil</v-icon>Editar
             </v-btn>
             <v-spacer />
-            <v-btn variant="text" color="orange-lighten-2">
-              <v-icon left>mdi-compass</v-icon>Explore
+            <!-- Botón para expandir o contraer -->
+            <v-btn icon @click="toggleExpand(char.id)">
+              <v-icon>
+                {{
+                  expandedCards.has(char.id)
+                    ? "mdi-chevron-up"
+                    : "mdi-chevron-down"
+                }}
+              </v-icon>
             </v-btn>
           </v-card-actions>
+
+          <!-- Contenido expandible: detalles adicionales -->
+          <v-slide-y-transition>
+            <div v-if="expandedCards.has(char.id)" class="card-details">
+              <div class="detail-item">
+                <strong>Género:</strong> {{ char.gender || "Desconocido" }}
+              </div>
+              <div class="detail-item">
+                <strong>Especie:</strong> {{ char.species || "Desconocido" }}
+              </div>
+              <div class="detail-item">
+                <strong>Estado:</strong> {{ char.status || "Desconocido" }}
+              </div>
+              <div class="detail-item">
+                <strong>Origen:</strong> {{ char.origin || "Desconocido" }}
+              </div>
+              <div class="detail-item">
+                <strong>Ubicación:</strong> {{ char.location || "Desconocido" }}
+              </div>
+            </div>
+          </v-slide-y-transition>
         </v-card>
       </v-col>
     </v-row>
@@ -119,12 +151,12 @@ interface CharacterFormData {
   location?: string;
 }
 
-// Función para transformar datos de un personaje de la API al formato del formulario
+// Función para transformar datos de la API al formato del formulario
 function transformApiCharacter(character: any): CharacterFormData {
   return {
     id: character.id,
     name: character.name,
-    description: "", // La API no tiene campo description
+    description: "", // La API no tiene campo "description"
     image: character.image,
     status: character.status,
     species: character.species,
@@ -143,10 +175,24 @@ const selectedCharacter = ref<
 const { allCharacters, createCharacter, updateCharacter, deleteCharacter } =
   useCharacters();
 
-// Variables para la confirmación al editar personajes de la API
+// Para el diálogo de confirmación al editar personajes de la API
 const pendingEditCharacter = ref<any>(null);
 const showConfirmEdit = ref(false);
 
+// Para manejar qué tarjetas están expandidas
+const expandedCards = ref<Set<number>>(new Set());
+
+function toggleExpand(id: number) {
+  if (expandedCards.value.has(id)) {
+    expandedCards.value.delete(id);
+  } else {
+    expandedCards.value.add(id);
+  }
+}
+
+/**
+ * Abrir modal para crear personaje
+ */
 function openCreateModal() {
   modalMode.value = "create";
   selectedCharacter.value = undefined;
@@ -154,8 +200,9 @@ function openCreateModal() {
 }
 
 /**
- * Si se intenta editar un personaje de la API, se solicita confirmación y se transforma
- * sus datos para llenar el formulario. Si ya es local, se abre directamente en modo edición.
+ * Abrir modal para editar personaje:
+ * - Si es de la API, se pide confirmación y se transforma el dato.
+ * - Si es local, se abre directamente.
  */
 function openEditModal(character: any) {
   if (!character.isLocal) {
@@ -183,6 +230,9 @@ function cancelConfirmEdit() {
   pendingEditCharacter.value = null;
 }
 
+/**
+ * Guardar cambios (crear o editar)
+ */
 function handleSave(data: CharacterFormData) {
   if (modalMode.value === "create") {
     createCharacter(data);
@@ -196,5 +246,22 @@ function handleSave(data: CharacterFormData) {
 </script>
 
 <style scoped>
-/* Puedes agregar estilos personalizados para mejorar la presentación */
+/* Ajuste de transición para minimizar saltos */
+.v-slide-y-transition-enter-active,
+.v-slide-y-transition-leave-active {
+  transition: all 0.15s ease-in-out;
+}
+
+/* Estilos para el contenido expandible */
+.card-details {
+  font-size: 0.9rem;
+  overflow: hidden;
+  padding: 0.5rem 1rem;
+  background-color: #f9f9f9;
+  border-top: 1px solid #e0e0e0;
+}
+
+.detail-item {
+  margin: 0.25rem 0;
+}
 </style>

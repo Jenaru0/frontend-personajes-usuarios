@@ -110,7 +110,7 @@ const localForm = reactive<CharacterFormData>({
   location: "",
 });
 
-// Si se proporcionan datos iniciales, se prellenan los campos
+// Si se pasan datos iniciales (modo edición), se rellenan
 if (props.initialData) {
   Object.assign(localForm, props.initialData);
 }
@@ -127,5 +127,5 @@ function handleCancel() {
 </script>
 
 <style scoped>
-/* Puedes agregar estilos personalizados */
+/* Estilos personalizados */
 </style>

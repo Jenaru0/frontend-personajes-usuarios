@@ -7,7 +7,7 @@ export interface LocalCharacter {
   image?: string;
   isLocal?: boolean;
   apiId?: number;
-  // Propiedades adicionales para datos de la API
+  // Campos adicionales
   status?: string;
   species?: string;
   gender?: string;
@@ -58,7 +58,7 @@ function saveLocalCharacters() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(localCharacters.value));
 }
 
-// Genera IDs negativos para personajes locales creados directamente
+// Genera IDs negativos para personajes locales
 function generateLocalId(): number {
   const localOnly = localCharacters.value.filter((c) => c.apiId === undefined);
   if (localOnly.length === 0) return -1;
@@ -67,11 +67,12 @@ function generateLocalId(): number {
 }
 
 export function useCharacters() {
-  // Cargar locales solo en cliente
+  // Cargar personajes locales en cliente
   if (process.client) {
     loadLocalCharacters();
   }
-  // Llamada a la API: se ejecuta tanto en SSR como en cliente
+
+  // Llamar a la API (SSR + Cliente)
   fetchApiCharacters();
 
   async function fetchApiCharacters() {
@@ -90,7 +91,7 @@ export function useCharacters() {
   }
 
   const allCharacters = computed<LocalCharacter[]>(() => {
-    // Mapeamos los locales que son ediciones de personajes de la API (tienen apiId)
+    // Mapeamos los personajes locales que son ediciones de API
     const localEdits = new Map<number, LocalCharacter>();
     localCharacters.value.forEach((c) => {
       if (c.apiId !== undefined) {
@@ -98,7 +99,7 @@ export function useCharacters() {
       }
     });
 
-    // Para cada personaje de la API, se utiliza la copia local si existe
+    // Fusionamos personajes de la API con sus copias locales
     const mergedApi = apiCharacters.value.map((apiChar) => {
       if (localEdits.has(apiChar.id)) {
         return localEdits.get(apiChar.id)!;
@@ -109,17 +110,17 @@ export function useCharacters() {
           image: apiChar.image,
           description: "",
           isLocal: false,
+          apiId: undefined,
           status: apiChar.status,
           species: apiChar.species,
           gender: apiChar.gender,
-          origin: apiChar.origin.name,
-          location: apiChar.location.name,
-          apiId: undefined,
-        } as LocalCharacter;
+          origin: apiChar.origin?.name,
+          location: apiChar.location?.name,
+        };
       }
     });
 
-    // Se incluyen los personajes creados localmente (no derivados de la API)
+    // Personajes locales creados desde cero
     const localNew = localCharacters.value.filter((c) => c.apiId === undefined);
 
     return [...localNew, ...mergedApi];
@@ -131,20 +132,20 @@ export function useCharacters() {
       name: data.name || "Sin nombre",
       description: data.description || "",
       image:
-        data.image ||
-        "https://www.svgrepo.com/show/508699/landscape-placeholder.svg",
+        data.image || "https://via.placeholder.com/200?text=Local+Character",
       isLocal: true,
+      status: data.status,
+      species: data.species,
+      gender: data.gender,
+      origin: data.origin,
+      location: data.location,
     };
     localCharacters.value.unshift(newChar);
     saveLocalCharacters();
   }
 
-  /**
-   * Actualiza un personaje:
-   * - Si ya existe en locales, se actualiza.
-   * - Si es un personaje de la API (sin copia), se crea una copia local con apiId.
-   */
   function updateCharacter(id: number, updatedData: Partial<LocalCharacter>) {
+    // Buscamos si existe en locales
     const index = localCharacters.value.findIndex((c) => c.id === id);
     if (index !== -1) {
       localCharacters.value[index] = {
@@ -153,6 +154,7 @@ export function useCharacters() {
       };
       saveLocalCharacters();
     } else {
+      // O es una edición de personaje de la API
       const localIndex = localCharacters.value.findIndex((c) => c.apiId === id);
       if (localIndex !== -1) {
         localCharacters.value[localIndex] = {
@@ -160,15 +162,16 @@ export function useCharacters() {
           ...updatedData,
         };
       } else {
+        // Se crea una copia local con apiId
         const newCopy: LocalCharacter = {
           id: generateLocalId(),
           apiId: id,
+          isLocal: true,
           name: updatedData.name || "Sin nombre",
           description: updatedData.description || "",
           image:
             updatedData.image ||
             "https://via.placeholder.com/200?text=API+Edited",
-          isLocal: true,
           status: updatedData.status,
           species: updatedData.species,
           gender: updatedData.gender,
