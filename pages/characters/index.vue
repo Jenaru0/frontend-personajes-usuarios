@@ -52,7 +52,7 @@
       </v-card>
     </v-dialog>
 
-    <!-- Listado de personajes en tarjetas -->
+    <!-- Lista de tarjetas -->
     <v-row>
       <v-col
         v-for="char in allCharacters"
@@ -85,11 +85,7 @@
 
           <!-- Acciones principales -->
           <v-card-actions>
-            <v-btn
-              color="error"
-              v-if="char.isLocal || char.apiId"
-              @click="deleteCharacter(char.id)"
-            >
+            <v-btn color="error" @click="deleteCharacter(char.id)">
               <v-icon left>mdi-delete</v-icon>Eliminar
             </v-btn>
             <v-btn color="secondary" @click="openEditModal(char)">
@@ -175,11 +171,8 @@ const selectedCharacter = ref<
 const { allCharacters, createCharacter, updateCharacter, deleteCharacter } =
   useCharacters();
 
-// Para el diálogo de confirmación al editar personajes de la API
 const pendingEditCharacter = ref<any>(null);
 const showConfirmEdit = ref(false);
-
-// Para manejar qué tarjetas están expandidas
 const expandedCards = ref<Set<number>>(new Set());
 
 function toggleExpand(id: number) {
@@ -190,20 +183,12 @@ function toggleExpand(id: number) {
   }
 }
 
-/**
- * Abrir modal para crear personaje
- */
 function openCreateModal() {
   modalMode.value = "create";
   selectedCharacter.value = undefined;
   dialog.value = true;
 }
 
-/**
- * Abrir modal para editar personaje:
- * - Si es de la API, se pide confirmación y se transforma el dato.
- * - Si es local, se abre directamente.
- */
 function openEditModal(character: any) {
   if (!character.isLocal) {
     pendingEditCharacter.value = transformApiCharacter(character);
@@ -230,9 +215,6 @@ function cancelConfirmEdit() {
   pendingEditCharacter.value = null;
 }
 
-/**
- * Guardar cambios (crear o editar)
- */
 function handleSave(data: CharacterFormData) {
   if (modalMode.value === "create") {
     createCharacter(data);
@@ -246,7 +228,7 @@ function handleSave(data: CharacterFormData) {
 </script>
 
 <style scoped>
-/* Ajuste de transición para minimizar saltos */
+/* Transición para el contenido expandible */
 .v-slide-y-transition-enter-active,
 .v-slide-y-transition-leave-active {
   transition: all 0.15s ease-in-out;

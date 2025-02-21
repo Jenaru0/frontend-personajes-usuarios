@@ -7,7 +7,7 @@ export interface LocalCharacter {
   image?: string;
   isLocal?: boolean;
   apiId?: number;
-  // Campos adicionales
+  // Campos adicionales (datos de la API)
   status?: string;
   species?: string;
   gender?: string;
@@ -44,8 +44,11 @@ export interface RickCharacter {
 }
 
 const STORAGE_KEY = "localCharacters";
+const DELETED_KEY = "deletedCharacters";
+
 const localCharacters = ref<LocalCharacter[]>([]);
 const apiCharacters = ref<RickCharacter[]>([]);
+const deletedCharacters = ref<number[]>([]);
 
 function loadLocalCharacters() {
   if (typeof window !== "undefined") {
@@ -58,7 +61,18 @@ function saveLocalCharacters() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(localCharacters.value));
 }
 
-// Genera IDs negativos para personajes locales
+function loadDeletedCharacters() {
+  if (typeof window !== "undefined") {
+    const stored = localStorage.getItem(DELETED_KEY);
+    deletedCharacters.value = stored ? JSON.parse(stored) : [];
+  }
+}
+
+function saveDeletedCharacters() {
+  localStorage.setItem(DELETED_KEY, JSON.stringify(deletedCharacters.value));
+}
+
+// Genera IDs negativos para personajes locales creados directamente
 function generateLocalId(): number {
   const localOnly = localCharacters.value.filter((c) => c.apiId === undefined);
   if (localOnly.length === 0) return -1;
@@ -67,12 +81,11 @@ function generateLocalId(): number {
 }
 
 export function useCharacters() {
-  // Cargar personajes locales en cliente
   if (process.client) {
     loadLocalCharacters();
+    loadDeletedCharacters();
   }
 
-  // Llamar a la API (SSR + Cliente)
   fetchApiCharacters();
 
   async function fetchApiCharacters() {
@@ -91,7 +104,7 @@ export function useCharacters() {
   }
 
   const allCharacters = computed<LocalCharacter[]>(() => {
-    // Mapeamos los personajes locales que son ediciones de API
+    // Mapeamos las ediciones locales de personajes de la API
     const localEdits = new Map<number, LocalCharacter>();
     localCharacters.value.forEach((c) => {
       if (c.apiId !== undefined) {
@@ -99,7 +112,7 @@ export function useCharacters() {
       }
     });
 
-    // Fusionamos personajes de la API con sus copias locales
+    // Fusionamos personajes de la API con sus ediciones locales
     const mergedApi = apiCharacters.value.map((apiChar) => {
       if (localEdits.has(apiChar.id)) {
         return localEdits.get(apiChar.id)!;
@@ -122,8 +135,12 @@ export function useCharacters() {
 
     // Personajes locales creados desde cero
     const localNew = localCharacters.value.filter((c) => c.apiId === undefined);
+    // Filtramos los personajes de la API marcados como borrados
+    const filteredMergedApi = mergedApi.filter(
+      (char) => !deletedCharacters.value.includes(char.id)
+    );
 
-    return [...localNew, ...mergedApi];
+    return [...localNew, ...filteredMergedApi];
   });
 
   function createCharacter(data: Partial<LocalCharacter>) {
@@ -145,7 +162,6 @@ export function useCharacters() {
   }
 
   function updateCharacter(id: number, updatedData: Partial<LocalCharacter>) {
-    // Buscamos si existe en locales
     const index = localCharacters.value.findIndex((c) => c.id === id);
     if (index !== -1) {
       localCharacters.value[index] = {
@@ -154,7 +170,6 @@ export function useCharacters() {
       };
       saveLocalCharacters();
     } else {
-      // O es una edición de personaje de la API
       const localIndex = localCharacters.value.findIndex((c) => c.apiId === id);
       if (localIndex !== -1) {
         localCharacters.value[localIndex] = {
@@ -162,7 +177,6 @@ export function useCharacters() {
           ...updatedData,
         };
       } else {
-        // Se crea una copia local con apiId
         const newCopy: LocalCharacter = {
           id: generateLocalId(),
           apiId: id,
@@ -185,12 +199,18 @@ export function useCharacters() {
   }
 
   function deleteCharacter(id: number) {
-    localCharacters.value = localCharacters.value.filter((c) => {
-      if (c.id === id) return false;
-      if (c.apiId === id) return false;
-      return true;
-    });
-    saveLocalCharacters();
+    // Si es un personaje local (creado), se elimina directamente
+    const localIndex = localCharacters.value.findIndex((c) => c.id === id);
+    if (localIndex !== -1) {
+      localCharacters.value.splice(localIndex, 1);
+      saveLocalCharacters();
+    } else {
+      // Si es un personaje de la API, lo marcamos como borrado
+      if (!deletedCharacters.value.includes(id)) {
+        deletedCharacters.value.push(id);
+        saveDeletedCharacters();
+      }
+    }
   }
 
   return {
