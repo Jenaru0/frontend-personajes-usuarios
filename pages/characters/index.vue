@@ -1,5 +1,5 @@
 <template>
-  <v-container fluid :class="darkMode ? 'theme--dark' : ''">
+  <v-container fluid>
     <!-- Encabezado: búsqueda, filtrado y modo oscuro -->
     <v-row class="my-4" align="center">
       <v-col cols="12" md="4">
@@ -195,7 +195,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
+import { useTheme } from "vuetify";
 import { useCharacters } from "@/composables/useCharacters";
 import CharacterForm from "@/components/CharacterForm.vue";
 
@@ -231,6 +232,8 @@ const modalMode = ref<"create" | "edit">("create");
 const selectedCharacter = ref<
   Partial<CharacterFormData & { id: number }> | undefined
 >(undefined);
+const detailDialog = ref(false);
+const extendedCharacter = ref<CharacterFormData | null>(null);
 
 const { allCharacters, createCharacter, updateCharacter, deleteCharacter } =
   useCharacters();
@@ -238,8 +241,6 @@ const { allCharacters, createCharacter, updateCharacter, deleteCharacter } =
 const pendingEditCharacter = ref<any>(null);
 const showConfirmEdit = ref(false);
 const expandedCards = ref<Set<number>>(new Set());
-const detailDialog = ref(false);
-const extendedCharacter = ref<CharacterFormData | null>(null);
 
 // Variables para búsqueda y filtros
 const searchQuery = ref("");
@@ -248,10 +249,6 @@ const filterGender = ref<string | null>(null);
 const statusOptions = ["Alive", "Dead", "unknown"];
 const genderOptions = ["Female", "Male", "Genderless", "unknown"];
 
-// Modo oscuro
-const darkMode = ref(false);
-
-// Propiedad computada para filtrar personajes
 const filteredCharacters = computed(() => {
   return allCharacters.value.filter((char) => {
     const matchesQuery = char.name
@@ -265,6 +262,13 @@ const filteredCharacters = computed(() => {
       : true;
     return matchesQuery && matchesStatus && matchesGender;
   });
+});
+
+// Modo oscuro
+const darkMode = ref(false);
+const theme = useTheme();
+watch(darkMode, (val) => {
+  theme.global.name.value = val ? "dark" : "light";
 });
 
 function toggleExpand(id: number) {
@@ -319,7 +323,6 @@ function handleSave(data: CharacterFormData) {
 }
 
 function openDetail(character: any) {
-  // Aquí podemos mostrar más información; por ahora usamos los datos que tenemos
   extendedCharacter.value = { ...character };
   detailDialog.value = true;
 }
