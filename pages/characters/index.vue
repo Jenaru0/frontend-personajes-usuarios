@@ -1,5 +1,5 @@
 <template>
-  <v-container fluid>
+  <v-container fluid :class="darkMode ? 'theme--dark' : ''">
     <!-- Encabezado: búsqueda, filtrado y modo oscuro -->
     <v-row class="my-4" align="center">
       <v-col cols="12" md="4">
@@ -66,54 +66,6 @@
       </v-card>
     </v-dialog>
 
-    <!-- Modal para detalle ampliado -->
-    <v-dialog v-model="detailDialog" max-width="500">
-      <v-card>
-        <v-card-title class="headline">
-          <v-icon left>mdi-information</v-icon>Detalle del Personaje
-        </v-card-title>
-        <v-card-text>
-          <div v-if="extendedCharacter">
-            <v-img
-              :src="extendedCharacter.image"
-              height="200px"
-              class="mb-2"
-            ></v-img>
-            <div><strong>Nombre:</strong> {{ extendedCharacter.name }}</div>
-            <div>
-              <strong>Estado:</strong>
-              {{ extendedCharacter.status || "Desconocido" }}
-            </div>
-            <div>
-              <strong>Género:</strong>
-              {{ extendedCharacter.gender || "Desconocido" }}
-            </div>
-            <div>
-              <strong>Especie:</strong>
-              {{ extendedCharacter.species || "Desconocido" }}
-            </div>
-            <div>
-              <strong>Origen:</strong>
-              {{ extendedCharacter.origin || "Desconocido" }}
-            </div>
-            <div>
-              <strong>Ubicación:</strong>
-              {{ extendedCharacter.location || "Desconocido" }}
-            </div>
-            <div v-if="extendedCharacter.description">
-              <strong>Descripción:</strong> {{ extendedCharacter.description }}
-            </div>
-          </div>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn color="primary" @click="detailDialog = false">
-            <v-icon left>mdi-close</v-icon>Cerrar
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
     <!-- Lista de tarjetas -->
     <v-row>
       <v-col
@@ -154,9 +106,7 @@
               <v-icon left>mdi-pencil</v-icon>Editar
             </v-btn>
             <v-spacer></v-spacer>
-            <v-btn color="info" @click="openDetail(char)">
-              <v-icon left>mdi-information</v-icon>Ver detalles
-            </v-btn>
+            <!-- Botón para expandir o contraer el desglose -->
             <v-btn icon @click="toggleExpand(char.id)">
               <v-icon>
                 {{
@@ -168,7 +118,7 @@
             </v-btn>
           </v-card-actions>
 
-          <!-- Contenido expandible: detalles adicionales -->
+          <!-- Desglose expandible: detalles adicionales -->
           <v-slide-y-transition>
             <div v-if="expandedCards.has(char.id)" class="card-details">
               <div class="detail-item">
@@ -212,12 +162,11 @@ interface CharacterFormData {
   location?: string;
 }
 
-// Función para transformar datos de la API al formato del formulario
 function transformApiCharacter(character: any): CharacterFormData {
   return {
     id: character.id,
     name: character.name,
-    description: "", // La API no tiene campo "description"
+    description: "",
     image: character.image,
     status: character.status,
     species: character.species,
@@ -232,8 +181,6 @@ const modalMode = ref<"create" | "edit">("create");
 const selectedCharacter = ref<
   Partial<CharacterFormData & { id: number }> | undefined
 >(undefined);
-const detailDialog = ref(false);
-const extendedCharacter = ref<CharacterFormData | null>(null);
 
 const { allCharacters, createCharacter, updateCharacter, deleteCharacter } =
   useCharacters();
@@ -242,7 +189,7 @@ const pendingEditCharacter = ref<any>(null);
 const showConfirmEdit = ref(false);
 const expandedCards = ref<Set<number>>(new Set());
 
-// Variables para búsqueda y filtros
+// Búsqueda y filtros
 const searchQuery = ref("");
 const filterStatus = ref<string | null>(null);
 const filterGender = ref<string | null>(null);
@@ -264,7 +211,7 @@ const filteredCharacters = computed(() => {
   });
 });
 
-// Modo oscuro
+// Modo oscuro usando useTheme de Vuetify
 const darkMode = ref(false);
 const theme = useTheme();
 watch(darkMode, (val) => {
@@ -321,11 +268,6 @@ function handleSave(data: CharacterFormData) {
   }
   dialog.value = false;
 }
-
-function openDetail(character: any) {
-  extendedCharacter.value = { ...character };
-  detailDialog.value = true;
-}
 </script>
 
 <style scoped>
@@ -335,6 +277,11 @@ function openDetail(character: any) {
   transition: all 0.15s ease-in-out;
 }
 
+.theme--dark .card-details {
+  background-color: #424242;
+  color: #ffffff;
+  border-top: 1px solid #616161;
+}
 /* Estilos para el contenido expandible */
 .card-details {
   font-size: 0.9rem;
