@@ -66,6 +66,28 @@
       </v-card>
     </v-dialog>
 
+    <!-- Diálogo de confirmación para editar personaje de la API -->
+    <v-dialog v-model="confirmDialog" max-width="400">
+      <v-card>
+        <v-card-title class="headline">
+          <v-icon left>mdi-pencil</v-icon>Confirmar Edición
+        </v-card-title>
+        <v-card-text>
+          Al editar un personaje de la API se creará una copia local con los
+          cambios. ¿Desea continuar?
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn color="primary" @click="confirmEdit">
+            <v-icon left>mdi-check</v-icon>Sí, continuar
+          </v-btn>
+          <v-btn variant="text" @click="cancelConfirmEdit">
+            <v-icon left>mdi-cancel</v-icon>Cancelar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- Lista de tarjetas -->
     <v-row>
       <v-col
@@ -166,7 +188,7 @@ function transformApiCharacter(character: any): CharacterFormData {
   return {
     id: character.id,
     name: character.name,
-    description: "",
+    description: "", // La API no tiene campo "description"
     image: character.image,
     status: character.status,
     species: character.species,
@@ -181,12 +203,12 @@ const modalMode = ref<"create" | "edit">("create");
 const selectedCharacter = ref<
   Partial<CharacterFormData & { id: number }> | undefined
 >(undefined);
+const confirmDialog = ref(false);
 
 const { allCharacters, createCharacter, updateCharacter, deleteCharacter } =
   useCharacters();
 
 const pendingEditCharacter = ref<any>(null);
-const showConfirmEdit = ref(false);
 const expandedCards = ref<Set<number>>(new Set());
 
 // Búsqueda y filtros
@@ -235,7 +257,7 @@ function openCreateModal() {
 function openEditModal(character: any) {
   if (!character.isLocal) {
     pendingEditCharacter.value = transformApiCharacter(character);
-    showConfirmEdit.value = true;
+    confirmDialog.value = true;
   } else {
     modalMode.value = "edit";
     selectedCharacter.value = { ...character };
@@ -249,12 +271,12 @@ function confirmEdit() {
     selectedCharacter.value = { ...pendingEditCharacter.value };
     dialog.value = true;
   }
-  showConfirmEdit.value = false;
+  confirmDialog.value = false;
   pendingEditCharacter.value = null;
 }
 
 function cancelConfirmEdit() {
-  showConfirmEdit.value = false;
+  confirmDialog.value = false;
   pendingEditCharacter.value = null;
 }
 
@@ -277,18 +299,20 @@ function handleSave(data: CharacterFormData) {
   transition: all 0.15s ease-in-out;
 }
 
-.theme--dark .card-details {
-  background-color: #424242;
-  color: #ffffff;
-  border-top: 1px solid #616161;
-}
-/* Estilos para el contenido expandible */
+/* Estilos para el contenido expandible en modo claro */
 .card-details {
   font-size: 0.9rem;
   overflow: hidden;
   padding: 0.5rem 1rem;
   background-color: #f9f9f9;
   border-top: 1px solid #e0e0e0;
+}
+
+/* Estilos para el contenido expandible en modo oscuro */
+.theme--dark .card-details {
+  background-color: #424242;
+  color: #ffffff;
+  border-top: 1px solid #616161;
 }
 
 .detail-item {
