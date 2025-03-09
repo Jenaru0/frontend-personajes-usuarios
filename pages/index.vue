@@ -2,61 +2,43 @@
 definePageMeta({
   layout: "auth",
 });
-import type { Login } from "@/interfaces/Login.Interface";
-const apiURL = useCookie("apiURL");
-const userLogin = useCookie<Login>("user");
+
 const email = ref("");
 const password = ref("");
 const loadingLogin = ref(false);
-const SingUp = () => {
-  navigateTo("/inicio");
-};
-const { ruleEmail, rulePassLen, ruleRequired } = useFormRules();
-const decodeToken = ref();
 const msgAlert = ref("");
+const { ruleEmail, rulePassLen, ruleRequired } = useFormRules();
+const { login } = useAuth();
+
 const onClickLogin = async () => {
   loadingLogin.value = true;
+
   if (!email.value || !password.value) {
     msgAlert.value = "Llene los datos correctamente";
     loadingLogin.value = false;
     return;
   }
-  // const { data: resLogin, pending: pendingLogin, error } = await useFetch<Login>(`${apiURL.value}/auth/login`,
-  //   {
-  //     method: "POST",
-  //     body: {
-  //       email: email.value,
-  //       password: password.value,
-  //     },
-  //     headers: {
-  //       // Authorization: `Bearer ${userCookie.value.token}`,
-  //     },
-  //   }
-  // );
-  // if (!resLogin.value?.status) {
-  //   msgAlert.value = "Las credenciales proporcionadas no son correctos";
-  //   loadingLogin.value = false;
-  //   return;
-  // }
-  // userLogin.value = resLogin.value
-  // loadingLogin.value = false;
-  navigateTo("/inicio");
-};
 
-const decodeTokenBtn = async () => {
-  const { data: tokenDec } = await useFetch<Login>(
-    `${apiURL.value}/auth/refresh-token`,
-    {
-      method: "POST",
-      body: {
-        token: userLogin.value.token,
-      },
-      headers: {
-        // Authorization: `Bearer ${userCookie.value.token}`,
-      },
+  try {
+    const result = await login(email.value, password.value);
+
+    if (result.success) {
+      // Reemplazar navegación programática con recarga completa
+      window.location.href = "/inicio";
+      // Alternativa: esperar a que el estado se actualice
+      // setTimeout(() => navigateTo("/inicio"), 100);
+    } else {
+      msgAlert.value =
+        typeof result.error === "string"
+          ? result.error
+          : "Credenciales inválidas";
     }
-  );
-  decodeToken.value = tokenDec.value;
+  } catch (error) {
+    msgAlert.value = "Error al iniciar sesión";
+    console.error(error);
+  } finally {
+    loadingLogin.value = false;
+  }
 };
 </script>
 

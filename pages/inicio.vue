@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { VListItemSubtitle } from 'vuetify/components';
+import { VListItemSubtitle } from "vuetify/components";
 
 export interface Character {
   info: Info;
@@ -28,13 +28,17 @@ export interface Result {
   created: Date;
 }
 
+definePageMeta({
+  middleware: ["auth"], // Y 'admin' para páginas administrativas
+});
 
-const { data } = await useFetch<Character>('https://rickandmortyapi.com/api/character')
-
+const { data } = await useFetch<Character>(
+  "https://rickandmortyapi.com/api/character"
+);
 </script>
 <template>
   <v-container fluid>
-    <div >
+    <div>
       <v-row>
         <v-col v-for="item in data?.results" :key="item.id">
           <v-card class="mx-auto" max-width="344">
@@ -44,9 +48,7 @@ const { data } = await useFetch<Character>('https://rickandmortyapi.com/api/char
               {{ item.name }}
             </v-card-title>
 
-            <v-card-subtitle>
-              1,000 miles of wonder
-            </v-card-subtitle>
+            <v-card-subtitle> 1,000 miles of wonder </v-card-subtitle>
 
             <v-card-actions>
               <v-btn color="orange-lighten-2" text="Explore"></v-btn>
@@ -61,28 +63,23 @@ const { data } = await useFetch<Character>('https://rickandmortyapi.com/api/char
                 <v-divider></v-divider>
 
                 <v-card-text>
-                  I'm a thing. But, like most politicians, he promised more than he could deliver. You won't have time
-                  for
-                  sleeping, soldier, not with all the bed making you'll be doing. Then we'll go with that data file!
-                  Hey,
-                  you
-                  add a one and two zeros to that or we walk! You're going to do his laundry? I've got to find a way to
-                  escape.
+                  I'm a thing. But, like most politicians, he promised more than
+                  he could deliver. You won't have time for sleeping, soldier,
+                  not with all the bed making you'll be doing. Then we'll go
+                  with that data file! Hey, you add a one and two zeros to that
+                  or we walk! You're going to do his laundry? I've got to find a
+                  way to escape.
                 </v-card-text>
               </div>
             </v-expand-transition>
           </v-card>
         </v-col>
       </v-row>
-
     </div>
     <!-- {{ data?.results }} -->
-
 
     <v-btn>Hello</v-btn>
 
     <VBtn>Hola</VBtn>
-
   </v-container>
-
 </template>
