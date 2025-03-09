@@ -3,7 +3,10 @@ import { useFetch, useRuntimeConfig } from "#app";
 
 export function useApi() {
   const token = useCookie("token");
-  const baseURL = "http://localhost:3020";
+
+  // URL dinámica según entorno
+  const config = useRuntimeConfig();
+  const baseURL = config.public.apiBaseUrl;
 
   const getHeaders = () => {
     const headers: Record<string, string> = {
